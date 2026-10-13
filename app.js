@@ -39,8 +39,7 @@
   function route() {
     var s = state.init.student;
     if (MODE === 'survey') return renderSurvey();
-    if (!s || !s.name) return renderName();
-    if (s.status === "2' 再提出依頼" || s.status === '1 LINE登録') return renderFriendThen(renderForm);
+    if (!s || !s.status || s.status === "2' 再提出依頼" || s.status === '1 LINE登録') return renderFriendThen(renderForm);
     show('<section class="card center"><div class="ok">✓</div><h1>お申込み済みです</h1><p>ご連絡はこのLINEでお送りします。</p><p class="muted">日程の変更などは、このLINEのトークでお知らせください。</p>' + closeBtn() + '</section>');
   }
 
@@ -59,30 +58,6 @@
         friendship().then(function (ok2) { if (ok2) next(); else document.getElementById('e').textContent = 'まだ友だち追加が確認できません。もう一度お試しください。'; });
       };
     });
-  }
-
-  // ---------- 1画面目：氏名 ----------
-  function renderName() {
-    var src = CH === 'none' ? '<label class="req" for="src">どこでこのイベントを知りましたか</label><select id="src"><option value="">選んでください</option><option>友人・知人の紹介</option><option>OfferBox</option><option>iroots</option><option>Wantedly</option><option>学生団体</option><option>大学</option><option>SNS</option><option>その他</option></select>' : '';
-    show('<section class="card"><h1>イベントのお申込み</h1><p class="muted">はじめに、お名前を教えてください。</p>' +
-      '<label class="req" for="nm">お名前（フルネーム）</label><input type="text" id="nm" autocomplete="name" placeholder="例）山田 太郎">' + src +
-      '<button class="btn" id="go">次へ</button><p class="err" id="e"></p></section>');
-    document.getElementById('go').onclick = function () {
-      var nm = document.getElementById('nm').value.trim();
-      var sv = document.getElementById('src') ? document.getElementById('src').value : '';
-      if (!nm) { document.getElementById('e').textContent = 'お名前を入力してください'; return; }
-      if (CH === 'none' && !sv) { document.getElementById('e').textContent = 'どこで知ったかを選んでください'; return; }
-      this.disabled = true;
-      var btn = this;
-      renderFriendThen(function () {
-        api('register', { name: nm, ch: CH, source: sv, prev: PREV }).then(function (res) {
-          if (!res.ok) throw new Error(res.error);
-          return api('init', { ch: CH, prev: PREV, mode: MODE });
-        }).then(function (res) { state.init = res; renderForm(); })
-          .catch(function (e) { showError(e.message); });
-      });
-      btn.disabled = false;
-    };
   }
 
   // ---------- 申込画面 ----------
@@ -110,6 +85,7 @@
       ? '<h1>内容の修正</h1><div class="note">直してほしい点：<br>' + esc(s.fix || 'LINEでお送りした内容をご確認ください') + '</div>'
       : '<h1>イベントのお申込み</h1>' + (I.questions.length ? '<p class="muted">所要時間の目安：30分ほど。入力した内容は、この端末に自動で保存されます（途中で閉じても大丈夫です）。</p>' : '<p class="muted">所要時間の目安：3分ほど。</p>');
     show('<section class="card">' + head +
+      (I.ch === 'none' && !resub ? '<label class="req" for="src">どこでこのイベントを知りましたか</label><select id="src"><option value="">選んでください</option>' + ['友人・知人の紹介', 'OfferBox', 'iroots', 'Wantedly', '学生団体', '大学', 'SNS', 'その他'].map(function (x) { return '<option' + (v('src', s.source) === x ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select>' : '') +
       '<label class="req" for="name">氏名</label><input type="text" id="name" value="' + esc(v('name', s.name)) + '">' +
       '<label class="req" for="kana">フリガナ</label><input type="text" id="kana" value="' + esc(v('kana', s.kana)) + '" placeholder="ヤマダ タロウ">' +
       '<label class="req" for="mail">メールアドレス</label><input type="email" id="mail" value="' + esc(v('mail', s.mail)) + '" autocomplete="email">' +
@@ -124,6 +100,7 @@
       '<button class="btn" id="send">' + (resub ? '修正して送る' : '申し込む') + '</button><p class="err" id="e"></p></section>');
 
     var ids = ['name', 'kana', 'mail', 'tel', 'birth', 'univ', 'grad', 'eventId'];
+    if (document.getElementById('src')) ids.unshift('src');
     function collect() {
       var f = {}; ids.forEach(function (k) { f[k] = document.getElementById(k).value.trim(); });
       var sx = document.querySelector('input[name=sex]:checked'); f.sex = sx ? sx.value : '';
@@ -161,7 +138,7 @@
       btn.disabled = true; btn.textContent = '送信しています…';
       friendship().then(function (ok) {
         if (!ok) { btn.disabled = false; btn.textContent = '申し込む'; return renderFriendThen(renderForm); }
-        return api('apply', { form: f }).then(function (res) {
+        return api('apply', { form: f, ch: CH, prev: PREV }).then(function (res) {
           if (!res.ok) { btn.disabled = false; btn.textContent = resub ? '修正して送る' : '申し込む'; e.textContent = res.error; if (res.needFriend) renderFriendThen(renderForm); return; }
           clearDraft();
           show('<section class="card center"><div class="ok">✓</div><h1>' + (resub ? '修正を受け付けました' : 'お申込みを受け付けました') + '</h1>' +
