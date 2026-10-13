@@ -24,10 +24,28 @@
   function show(html) { app.innerHTML = html; window.scrollTo(0, 0); }
   function showError(msg) { show('<section class="card"><h1>うまく開けませんでした</h1><p class="err">' + esc(msg) + '</p><p class="muted">時間をおいて開き直すか、このLINEのトークでお知らせください。</p></section>'); }
 
+  // ログインの期限切れ対策：期限が切れていたらログインし直す（入力途中の内容は端末に保存済み）
+  function tokenExpired() {
+    var dec = liff.getDecodedIDToken();
+    return !dec || !dec.exp || dec.exp * 1000 < Date.now() + 60000;
+  }
+  function relogin() {
+    var key = 'evline_relogin_' + Math.floor(Date.now() / 60000);   // 同じ1分の間に何度も繰り返さない
+    try { if (sessionStorage.getItem(key)) return false; sessionStorage.setItem(key, '1'); } catch (e) { }
+    show('<section class="card center"><p>ログインを更新しています…</p></section>');
+    try { liff.logout(); } catch (e) { }
+    if (liff.isInClient()) location.reload(); else liff.login({ redirectUri: location.href });
+    return true;
+  }
   function api(action, data) {
+    if (tokenExpired() && relogin()) return new Promise(function () { });
     var body = Object.assign({ action: action, idToken: state.idToken }, data || {});
     return fetch(window.APP_CONFIG.GAS_URL, { method: 'POST', body: JSON.stringify(body) })
-      .then(function (r) { return r.json(); });
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res && !res.ok && /本人確認/.test(res.error || '') && relogin()) return new Promise(function () { });
+        return res;
+      });
   }
 
   function friendship() {
