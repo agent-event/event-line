@@ -19,6 +19,7 @@
   var state = { idToken: '', sub: '', init: null };
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function nl(s) { return esc(s).replace(/\r?\n/g, '<br>'); }
   function chars(s) { return String(s || '').replace(/\r?\n/g, '').length; }
   function show(html) { app.innerHTML = html; window.scrollTo(0, 0); }
   function showError(msg) { show('<section class="card"><h1>うまく開けませんでした</h1><p class="err">' + esc(msg) + '</p><p class="muted">時間をおいて開き直すか、このLINEのトークでお知らせください。</p></section>'); }
@@ -78,7 +79,7 @@
   function clearDraft() { try { localStorage.removeItem(DKEY()); } catch (e) { } }
 
   function renderForm() {
-    var I = state.init, s = I.student || {}, d = loadDraft(), prevA = I.prevAnswers || {};
+    var I = state.init, s = I.student || {}, d = loadDraft(), prevA = I.prevAnswers || {}, T = I.texts || {};
     var resub = s.status === "2' 再提出依頼";
     var v = function (k, fb) { return d[k] != null ? d[k] : (fb || ''); };
     if (!I.events.length && !resub) {
@@ -94,7 +95,9 @@
     }).join('');
     var head = resub
       ? '<h1>内容の修正</h1><div class="note">直してほしい点：<br>' + esc(s.fix || 'LINEでお送りした内容をご確認ください') + '</div>'
-      : '<h1>イベントのお申込み</h1>' + (I.questions.length ? '<p class="muted">所要時間の目安：30分ほど。入力した内容は、この端末に自動で保存されます（途中で閉じても大丈夫です）。</p>' : '<p class="muted">所要時間の目安：3分ほど。</p>');
+      : '<h1>イベントのお申込み</h1>' + (I.questions.length
+        ? (T.intro ? '<p>' + nl(T.intro) + '</p>' : '') + '<p class="muted">入力した内容は、この端末に自動で保存されます（途中で閉じても大丈夫です）。</p>'
+        : '<p class="muted">所要時間の目安：3分ほど。</p>');
     show('<section class="card">' + head +
       (I.ch === 'none' && !resub ? '<label class="req" for="src">どこでこのイベントを知りましたか</label><select id="src"><option value="">選んでください</option>' + ['友人・知人の紹介', 'OfferBox', 'iroots', 'Wantedly', '学生団体', '大学', 'SNS', 'その他'].map(function (x) { return '<option' + (v('src', s.source) === x ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select>' : '') +
       '<label class="req" for="name">氏名</label><input type="text" id="name" value="' + esc(v('name', s.name)) + '">' +
@@ -106,6 +109,7 @@
       '<label class="req" for="univ">大学名・学部名</label><input type="text" id="univ" value="' + esc(v('univ', s.univ)) + '" placeholder="〇〇大学 〇〇学部">' +
       '<label class="req" for="grad">卒業年度</label><select id="grad"><option value="">選んでください</option>' + ['2028年3月卒業予定', '2027年3月卒業予定', '2029年3月卒業予定', 'その他'].map(function (x) { return '<option' + (v('grad', s.grad) === x ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select>' +
       '<label class="req" for="eventId">参加希望日</label><select id="eventId"><option value="">選んでください</option>' + evOpts + '</select>' +
+      (I.questions.length && T.criteria ? '<div class="note">' + nl(T.criteria) + '</div>' : '') +
       qs +
       '<label class="req">個人情報の取り扱い</label><div class="consent"><input type="checkbox" id="consent"' + (d.consent ? ' checked' : '') + '><span>ご入力いただいた個人情報は、株式会社エージェントの<a href="https://agent-network.com/policy/" target="_blank" rel="noopener">プライバシーポリシー</a>に基づき、採用活動およびイベントの運営のために利用します。また、お申込みの経路となった提携企業・団体へ、イベントへの参加状況をお知らせすることがあります。<br><b>プライバシーポリシーと上記の内容に同意する</b></span></div>' +
       '<button class="btn" id="send">' + (resub ? '修正して送る' : '申し込む') + '</button><p class="err" id="e"></p></section>');
@@ -153,7 +157,7 @@
           if (!res.ok) { btn.disabled = false; btn.textContent = resub ? '修正して送る' : '申し込む'; e.textContent = res.error; if (res.needFriend) renderFriendThen(renderForm); return; }
           clearDraft();
           show('<section class="card center"><div class="ok">✓</div><h1>' + (resub ? '修正を受け付けました' : 'お申込みを受け付けました') + '</h1>' +
-            '<p>受付完了のご連絡を、このLINEにお送りしました。</p><p class="muted">' + (res.dr ? '続けて、LINEに届いたリンクから面談の日程をお選びください。' : '書類選考の結果は、このLINEでお知らせします。') + '</p>' + closeBtn() + '</section>');
+            '<p>受付完了のご連絡を、このLINEにお送りしました。</p><p class="muted">' + (res.dr ? '続けて、LINEに届いたリンクから面談の日程をお選びください。' : '書類選考の結果は、このLINEでお知らせします。') + '</p>' + (!res.dr && !resub && T.after ? '<div class="note" style="text-align:left">' + nl(T.after) + '</div>' : '') + closeBtn() + '</section>');
         });
       }).catch(function (err) { btn.disabled = false; e.textContent = '送信できませんでした。通信状況をご確認のうえ、もう一度お試しください。（' + err.message + '）'; });
     };
