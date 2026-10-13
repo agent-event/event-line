@@ -2,10 +2,20 @@
 (function () {
   'use strict';
   var app = document.getElementById('app');
-  var params = new URLSearchParams(location.search);
-  var CH = params.get('ch') || 'none';
-  var PREV = params.get('prev') || '';
-  var MODE = params.get('mode') || '';
+  // ?ch= などは、LIFFの転送で liff.state の中に入って届くことがあるため、両方から読む
+  var CH = 'none', PREV = '', MODE = '';
+  function readParams() {
+    var p = new URLSearchParams(location.search);
+    var st = p.get('liff.state');
+    if (st) {
+      var q = st.indexOf('?');
+      if (q >= 0) new URLSearchParams(st.slice(q + 1)).forEach(function (v, k) { if (!p.has(k)) p.set(k, v); });
+    }
+    CH = p.get('ch') || 'none';
+    PREV = p.get('prev') || '';
+    MODE = p.get('mode') || '';
+  }
+  readParams();
   var state = { idToken: '', sub: '', init: null };
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -25,6 +35,7 @@
 
   // ---------- 起動 ----------
   liff.init({ liffId: window.APP_CONFIG.LIFF_ID }).then(function () {
+    readParams();
     if (!liff.isLoggedIn()) { liff.login({ redirectUri: location.href }); return; }
     state.idToken = liff.getIDToken();
     var dec = liff.getDecodedIDToken();
