@@ -31,10 +31,11 @@
   }
   function relogin() {
     var key = 'evline_relogin_' + Math.floor(Date.now() / 60000);   // 同じ1分の間に何度も繰り返さない
-    try { if (sessionStorage.getItem(key)) return false; sessionStorage.setItem(key, '1'); } catch (e) { }
+    try { if (sessionStorage.getItem(key)) return false; sessionStorage.setItem(key, '1'); } catch (e) { return false; }
+    if (!liff.isInClient() && loginTried()) return false;   // ブラウザでのログインし直しは1回まで
     show('<section class="card center"><p>ログインを更新しています…</p></section>');
     try { liff.logout(); } catch (e) { }
-    if (liff.isInClient()) location.reload(); else liff.login({ redirectUri: location.href });
+    if (liff.isInClient()) location.reload(); else liff.login({ redirectUri: loginUrl() });
     return true;
   }
   function api(action, data) {
@@ -52,10 +53,39 @@
     return liff.getFriendship().then(function (f) { return !!f.friendFlag; }).catch(function () { return true; });
   }
 
+  // ---------- LINEアプリで開き直してもらう画面 ----------
+  var MOBILE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  function lineAppUrl() {
+    var q = [];
+    if (CH && CH !== 'none') q.push('ch=' + encodeURIComponent(CH));
+    if (PREV) q.push('prev=' + encodeURIComponent(PREV));
+    if (MODE) q.push('mode=' + encodeURIComponent(MODE));
+    return 'https://liff.line.me/' + window.APP_CONFIG.LIFF_ID + (q.length ? '?' + q.join('&') : '');
+  }
+  function renderOpenInLine() {
+    var url = lineAppUrl();
+    show('<section class="card center"><h1>LINEアプリで開いてください</h1>' +
+      '<p>このページは、スマホのLINEアプリの中でお申込みいただけます。下のボタンを押すと、LINEアプリで開きます。</p>' +
+      '<a class="btn" href="' + esc(url) + '">LINEアプリで開く</a>' +
+      '<p class="muted" style="margin-top:16px">うまく開かない場合は、先にイベント事務局のLINEを友だち追加してください。トークに届くリンクから、LINEアプリの中でお申込みいただけます。</p>' +
+      '<a class="btn sub" href="https://line.me/R/ti/p/@316kpmzc">LINEで友だち追加する</a></section>');
+  }
+  function loginTried() { return new URLSearchParams(location.search).get('lr') === '1'; }
+  function loginUrl() {
+    var u = new URL(location.href);
+    u.searchParams.set('lr', '1');
+    return u.toString();
+  }
+
   // ---------- 起動 ----------
   liff.init({ liffId: window.APP_CONFIG.LIFF_ID }).then(function () {
     readParams();
-    if (!liff.isLoggedIn()) { liff.login({ redirectUri: location.href }); return; }
+    if (!liff.isInClient() && MOBILE) { renderOpenInLine(); return; }   // スマホのブラウザ → LINEアプリへ
+    if (!liff.isLoggedIn()) {
+      if (loginTried()) { renderOpenInLine(); return; }   // ログインから戻ってもログインできていない → 行き来を止める
+      liff.login({ redirectUri: loginUrl() });
+      return;
+    }
     state.idToken = liff.getIDToken();
     var dec = liff.getDecodedIDToken();
     state.sub = dec ? dec.sub : 'me';

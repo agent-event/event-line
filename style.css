@@ -38,3 +38,4 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand);border-co
 @media (prefers-reduced-motion:reduce){.spinner{animation:none}}
 .foot{max-width:640px;margin:0 auto;padding:8px 16px 32px;font-size:12.5px;color:var(--muted)}
 .ok{color:var(--ok);font-size:40px;line-height:1}
+a.btn{text-decoration:none;text-align:center;box-sizing:border-box}
