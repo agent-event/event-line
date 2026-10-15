@@ -148,8 +148,7 @@
         : '<p class="muted">所要時間の目安：3分ほど。</p>');
     show('<section class="card">' + head +
       (I.ch === 'none' && !resub ? '<label class="req" for="src">どこでこのイベントを知りましたか</label><select id="src"><option value="">選んでください</option>' + ['友人・知人の紹介', 'OfferBox', 'iroots', 'Wantedly', '学生団体', '大学', 'SNS', 'その他'].map(function (x) { return '<option' + (v('src', s.source) === x ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select>' : '') +
-      '<div class="row2"><div><label class="req" for="sei">姓</label><input type="text" id="sei" autocomplete="family-name" placeholder="山田" value="' + esc(v('sei', s.sei)) + '"></div>' +
-      '<div><label class="req" for="mei">名</label><input type="text" id="mei" autocomplete="given-name" placeholder="太郎" value="' + esc(v('mei', s.mei)) + '"></div></div>' +
+      '<label class="req" for="name">氏名</label><input type="text" id="name" value="' + esc(v('name', s.name)) + '">' +
       '<label class="req" for="kana">フリガナ</label><input type="text" id="kana" value="' + esc(v('kana', s.kana)) + '" placeholder="ヤマダ タロウ">' +
       '<label class="req" for="mail">メールアドレス</label><input type="email" id="mail" value="' + esc(v('mail', s.mail)) + '" autocomplete="email">' +
       '<label class="req" for="tel">電話番号</label><input type="tel" id="tel" value="' + esc(v('tel', s.tel)) + '" placeholder="09012345678">' +
@@ -163,7 +162,7 @@
       '<label class="req">個人情報の取り扱い</label><div class="consent"><input type="checkbox" id="consent"' + (d.consent ? ' checked' : '') + '><span>ご入力いただいた個人情報は、株式会社エージェントの<a href="https://agent-network.com/policy/" target="_blank" rel="noopener">プライバシーポリシー</a>に基づき、採用活動およびイベントの運営のために利用します。また、お申込みの経路となった提携企業・団体へ、イベントへの参加状況をお知らせすることがあります。<br><b>プライバシーポリシーと上記の内容に同意する</b></span></div>' +
       '<button class="btn" id="send">' + (resub ? '修正して送る' : '申し込む') + '</button><p class="err" id="e"></p></section>');
 
-    var ids = ['sei', 'mei', 'kana', 'mail', 'tel', 'birth', 'univ', 'grad', 'eventId'];
+    var ids = ['name', 'kana', 'mail', 'tel', 'birth', 'univ', 'grad', 'eventId'];
     if (document.getElementById('src')) ids.unshift('src');
     function collect() {
       var f = {}; ids.forEach(function (k) { f[k] = document.getElementById(k).value.trim(); });
