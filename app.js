@@ -216,7 +216,9 @@
   function renderSurvey() {
     var I = state.init;
     var qs = I.questions.map(function (q) {
-      return '<label class="' + (q.required ? 'req' : '') + '" for="q' + q.no + '">Q' + q.no + '</label><div class="q">' + esc(q.text) + '</div><textarea id="q' + q.no + '" style="min-height:120px"></textarea>';
+      var head = '<label class="' + (q.required ? 'req' : '') + '" for="q' + q.no + '">Q' + q.no + '</label><div class="q">' + esc(q.text) + '</div>';
+      if (q.choices && q.choices.length) return head + '<div class="radio" id="q' + q.no + '">' + q.choices.map(function (c) { return '<label><input type="radio" name="q' + q.no + '" value="' + esc(c) + '">' + esc(c) + '</label>'; }).join('') + '</div>';
+      return head + '<textarea id="q' + q.no + '" style="min-height:120px"></textarea>';
     }).join('');
     show('<section class="card"><h1>参加後アンケート</h1><p class="muted">本日はご参加いただき、ありがとうございました。</p>' + qs +
       '<label class="req">今後の選考へのご参加を希望されますか</label><div class="radio"><label><input type="radio" name="want" value="yes">希望する</label><label><input type="radio" name="want" value="no">希望しない</label></div>' +
@@ -225,7 +227,9 @@
       var e = document.getElementById('e'), w = document.querySelector('input[name=want]:checked'), btn = this;
       var answers = {};
       for (var i = 0; i < I.questions.length; i++) {
-        var q = I.questions[i], val = document.getElementById('q' + q.no).value.trim();
+        var q = I.questions[i], val;
+        if (q.choices && q.choices.length) { var ck = document.querySelector('input[name=q' + q.no + ']:checked'); val = ck ? ck.value : ''; }
+        else val = document.getElementById('q' + q.no).value.trim();
         if (q.required && !val) { e.textContent = 'Q' + q.no + 'にご回答ください'; return; }
         answers[q.no] = val;
       }
