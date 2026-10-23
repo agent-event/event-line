@@ -138,7 +138,7 @@
     if (resub && s.eventId && !I.events.some(function (e) { return e.id === s.eventId; })) evOpts = '<option value="' + esc(s.eventId) + '" selected>前回選んだ日程</option>' + evOpts;
     var qs = I.questions.map(function (q) {
       var val = v('q' + q.no, prevA[q.no]);
-      return '<label class="' + (q.required ? 'req' : '') + '" for="q' + q.no + '">設問' + q.no + '</label><div class="q">' + esc(q.text) + '</div>' +
+      return '<label class="' + (q.required ? 'req' : '') + '" for="q' + q.no + '">設問' + q.no + (q.min ? '（' + q.min + '字以上）' : '') + '</label><div class="q">' + esc(q.text) + '</div>' +
         '<textarea id="q' + q.no + '" data-min="' + q.min + '" data-max="' + q.max + '">' + esc(val) + '</textarea><div class="counter" id="c' + q.no + '"></div>';
     }).join('');
     var head = resub
@@ -160,7 +160,7 @@
       '<label class="req" for="eventId">参加希望日</label><select id="eventId"><option value="">選んでください</option>' + evOpts + '</select>' +
       (I.questions.length && T.criteria ? '<div class="note">' + nl(T.criteria) + '</div>' : '') +
       qs +
-      '<label class="req">個人情報の取り扱い</label><div class="consent"><input type="checkbox" id="consent"' + (d.consent ? ' checked' : '') + '><span>ご入力いただいた個人情報は、株式会社エージェントの<a href="https://agent-network.com/policy/" target="_blank" rel="noopener">プライバシーポリシー</a>に基づき、採用活動およびイベントの運営のために利用します。また、お申込みの経路となった提携企業・団体へ、イベントへの参加状況をお知らせすることがあります。<br><b>プライバシーポリシーと上記の内容に同意する</b></span></div>' +
+      '<label class="req">個人情報の取り扱い</label><div class="consent"><input type="checkbox" id="consent"' + (d.consent ? ' checked' : '') + '><span>ご入力いただいた個人情報は、株式会社エージェントの<a href="https://agent-network.com/forinquiry/" target="_blank" rel="noopener">プライバシーポリシー</a>に基づき、採用活動およびイベントの運営のために利用します。また、お申込みの経路となった提携企業・団体へ、イベントへの参加状況をお知らせすることがあります。<br><b>プライバシーポリシーと上記の内容に同意する</b></span></div>' +
       '<button class="btn" id="send">' + (resub ? '修正して送る' : '申し込む') + '</button><p class="err" id="e"></p></section>');
 
     var ids = ['sei', 'mei', 'kana', 'mail', 'tel', 'birth', 'univ', 'grad', 'eventId'];
